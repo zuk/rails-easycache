@@ -3,29 +3,90 @@ class Easycache
   @@cache = ActionController::Base.fragment_cache_store
   
   class << Easycache
-    def write(keyname, value, options = nil)
+    # Store value in the cache under keyname.
+    #
+    # The options hash can have an :expiry value that will expire the given
+    # entry once this many seconds have passed.
+    #
+    # Note that the value must be serializable via to_yaml(). This means that
+    # certain objects (for example, IO handles) can't be stored in the cache.
+    #
+    # Example:
+    #
+    #   data = {:bar => 'foo'}
+    #   Easycache.write('test', data, {:expiry => 15})
+    #
+    # For the expiry value, if active_support is included (as it always is
+    # inside Rails apps), you can use the time conversion extensions like:
+    #
+    #   Easycache.write('test', data, {:expiry => 24.hours})
+    #
+    def write(keyname, value, options = {})
+      raise "Easycache keyname cannot end with '::EXPIRY'" if keyname =~ /::EXPIRY$/
       @@cache.write(namespace_keyname(keyname), value.to_yaml, options)
+      if options[:expiry]
+        @@cache.write(namespace_keyname(keyname)+"::EXPIRY",
+          Time.now.to_i + options[:expiry])
+      end
       value
     end
     
-    def read(keyname, options = nil)
+    # Retrieve the cached value under keyname; or nil if no value is cached
+    # under this keyname.
+    def read(keyname)
+      if expiry = @@cache.read(namespace_keyname(keyname)+"::EXPIRY")
+        if expiry.to_i < Time.now.to_i
+          self.delete(keyname)
+          self.delete(keyname+"::EXPIRY")
+          return nil
+        end
+      end
       value = @@cache.read(namespace_keyname(keyname))
       return value unless value.kind_of? String
       YAML.load(value)
     end
     
-    def cache(keyname, options=nil, &block)
-      read(keyname, options) ||
+    # This convenience method allows you to cache the return value of any block
+    # of code.
+    #
+    # Example:
+    #
+    #   person = Easycache.cache('foo') do
+    #     Person.find_by_name("John")
+    #   end
+    #
+    # The first time the above code is run, the block will be executed and its
+    # result will be cache dand returned. From then on, instead of executing
+    # the block, Easycache will return the previously cached value.
+    #
+    # Note that if your block returns nil, it will not be cached and the block
+    # will continue to be executed.
+    #
+    # As with Easycache#write, you can specify an options hash with an :expiry
+    # value.
+    #
+    # Example:
+    #
+    #   person = Easycache.cache('foo', :expiry => 24.hours) do
+    #     Person.find_by_name("John")
+    #   end
+    def cache(keyname, options = {}, &block)
+      read(keyname) ||
         write(keyname, yield, options)
     end
     
-    def delete(keyname, options = nil)
-      @@cache.delete(namespace_keyname(keyname), options)
+    # Returns the value stored at the given keyname (if any) and deletes it from 
+    # the cache.
+    # Returns nil and does nothing if the keyname doesn't exist.
+    def delete(keyname)
+      @@cache.delete(namespace_keyname(keyname), nil)
     end
     
     private
-    def namespace_keyname(keyname)
-      "EASYCACHE::#{keyname}"
-    end
+      # We automatically prefix all keynames with a string to help prevent 
+      # namespace clashes.
+      def namespace_keyname(keyname)
+        "EASYCACHE::#{keyname}"
+      end
   end
 end
