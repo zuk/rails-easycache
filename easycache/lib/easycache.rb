@@ -22,6 +22,7 @@ class Easycache
     #   Easycache.write('test', data, {:expiry => 24.hours})
     #
     def write(keyname, value, options = {})
+      keyname = keyname.to_s
       raise "Easycache keyname cannot end with '::EXPIRY'" if keyname =~ /::EXPIRY$/
       @@cache.write(namespace_keyname(keyname), value.to_yaml, options)
       if options[:expiry]
@@ -34,6 +35,7 @@ class Easycache
     # Retrieve the cached value under keyname; or nil if no value is cached
     # under this keyname.
     def read(keyname)
+      keyname = keyname.to_s
       if expiry = @@cache.read(namespace_keyname(keyname)+"::EXPIRY")
         if expiry.to_i < Time.now.to_i
           self.delete(keyname)
@@ -71,6 +73,7 @@ class Easycache
     #     Person.find_by_name("John")
     #   end
     def cache(keyname, options = {}, &block)
+      keyname = keyname.to_s
       read(keyname) ||
         write(keyname, yield, options)
     end
@@ -79,6 +82,7 @@ class Easycache
     # the cache.
     # Returns nil and does nothing if the keyname doesn't exist.
     def delete(keyname)
+      keyname = keyname.to_s
       @@cache.delete(namespace_keyname(keyname), nil)
     end
     
@@ -86,6 +90,7 @@ class Easycache
       # We automatically prefix all keynames with a string to help prevent 
       # namespace clashes.
       def namespace_keyname(keyname)
+        keyname = keyname.to_s
         "EASYCACHE::#{keyname}"
       end
   end
