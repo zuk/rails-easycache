@@ -62,7 +62,7 @@ class Easycache
       #   end
       def cache(keyname, options = {}, &block)
         keyname = keyname.to_s
-        (Rails.cache.exist?(keyname) && read(keyname)) ||
+        (exists?(keyname) && read(keyname)) ||
           write(keyname, yield, options)
       end
       
@@ -72,6 +72,11 @@ class Easycache
       def delete(keyname)
         keyname = keyname.to_s
         Rails.cache.delete(namespace_keyname(keyname))
+      end
+      
+      # Returns true if the given keyname exists in the cache.
+      def exists?(keyname)
+        Rails.cache.exist?(namespace_keyname(keyname))
       end
       
       private
@@ -157,8 +162,21 @@ class Easycache
       #   end
       def cache(keyname, options = {}, &block)
         keyname = keyname.to_s
-        read(keyname) ||
+        (exists?(keyname) && read(keyname)) ||
           write(keyname, yield, options)
+      end
+      
+      # Returns true if the given keyname exists in the cache.
+      def exists?(keyname)
+        return false unless @@cache.exist?(namespace_keyname(keyname))
+        if expiry = @@cache.read(namespace_keyname(keyname)+"::EXPIRY")
+          if expiry.to_i < Time.now.to_i
+            self.delete(keyname)
+            self.delete(keyname+"::EXPIRY")
+            return false
+          end
+        end
+        return true
       end
       
       # Returns the value stored at the given keyname (if any) and deletes it from 
