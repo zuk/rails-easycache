@@ -62,7 +62,7 @@ class Easycache
       #   end
       def cache(keyname, options = {}, &block)
         keyname = keyname.to_s
-        read(keyname) ||
+        (Rails.cache.exist?(keyname) && read(keyname)) ||
           write(keyname, yield, options)
       end
       
