@@ -5,7 +5,7 @@ class Easycache
     class << Easycache
       # Store value in the cache under keyname.
       #
-      # The options hash can have an :expire_in value that will expire the given
+      # The options hash can have an :expires_in value that will expire the given
       # entry once this many seconds have passed.
       #
       # Note that the value must be serializable via Marshal.dump(). This means 
@@ -16,15 +16,15 @@ class Easycache
       # Example:
       #
       #   data = {:bar => 'foo'}
-      #   Easycache.write('test', data, {:expire_in => 15})
+      #   Easycache.write('test', data, {:expires_in => 15})
       #
       # For the expiry value you can use time conversion extensions like:
       #
-      #   Easycache.write('test', data, {:expire_in => 24.hours})
+      #   Easycache.write('test', data, {:expires_in => 24.hours})
       #
       def write(keyname, value, options = {})
         keyname = keyname.to_s
-        options[:expire_in] ||= options[:expiry]
+        options[:expires_in] ||= options[:expiry]
         Rails.cache.write(namespace_keyname(keyname), value, options)
         value
       end
@@ -52,12 +52,12 @@ class Easycache
       # Note that if your block returns nil, it will not be cached and the block
       # will continue to be executed.
       #
-      # As with Easycache#write, you can specify an options hash with an :expire_in
+      # As with Easycache#write, you can specify an options hash with an :expires_in
       # value.
       #
       # Example:
       #
-      #   person = Easycache.cache('foo', :expire_in => 24.hours) do
+      #   person = Easycache.cache('foo', :expires_in => 24.hours) do
       #     Person.find_by_name("John")
       #   end
       def cache(keyname, options = {}, &block)
@@ -89,7 +89,7 @@ class Easycache
     class << Easycache
       # Store value in the cache under keyname.
       #
-      # The options hash can have an :expire_in value that will expire the given
+      # The options hash can have an :expires_in value that will expire the given
       # entry once this many seconds have passed.
       #
       # Note that the value must be serializable via to_yaml(). This means that
@@ -98,19 +98,19 @@ class Easycache
       # Example:
       #
       #   data = {:bar => 'foo'}
-      #   Easycache.write('test', data, {:expire_in => 15})
+      #   Easycache.write('test', data, {:expires_in => 15})
       #
       # For the expiry value you can use time conversion extensions like:
       #
-      #   Easycache.write('test', data, {:expire_in => 24.hours})
+      #   Easycache.write('test', data, {:expires_in => 24.hours})
       #
       def write(keyname, value, options = {})
         keyname = keyname.to_s
         raise "Easycache keyname cannot end with '::EXPIRY'" if keyname =~ /::EXPIRY$/
         @@cache.write(namespace_keyname(keyname), value.to_yaml, options)
-        if (options[:expire_in] || options[:expiry])
+        if (options[:expires_in] || options[:expiry])
           @@cache.write(namespace_keyname(keyname)+"::EXPIRY",
-            Time.now.to_i + (options[:expire_in] || options[:expiry]))
+            Time.now.to_i + (options[:expires_in] || options[:expiry]))
         end
         value
       end
@@ -147,12 +147,12 @@ class Easycache
       # Note that if your block returns nil, it will not be cached and the block
       # will continue to be executed.
       #
-      # As with Easycache#write, you can specify an options hash with an :expire_in
+      # As with Easycache#write, you can specify an options hash with an :expires_in
       # value.
       #
       # Example:
       #
-      #   person = Easycache.cache('foo', :expire_in => 24.hours) do
+      #   person = Easycache.cache('foo', :expires_in => 24.hours) do
       #     Person.find_by_name("John")
       #   end
       def cache(keyname, options = {}, &block)
