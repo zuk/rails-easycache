@@ -13,6 +13,10 @@ class Easycache
       # cache. The :raw => true option will prevent the value from being
       # automatically serialized.
       #
+      # Also, note that because the Ruby MemCache client packaged with Rails does not
+      # store nil values, Easycache will store nil's as the string "EASYCACHE::nil".
+      # This is automatically converted back to a nil when the value is read.
+      #
       # Example:
       #
       #   data = {:bar => 'foo'}
@@ -24,8 +28,12 @@ class Easycache
       #
       def write(keyname, value, options = {})
         keyname = keyname.to_s
+        store_value = value
+        raise ArgumentError,
+          'The value "EASYCACHE::nil" is reserved by Easycache and cannot be stored.' if value == 'EASYCACHE::nil'
+        store_value = 'EASYCACHE::nil' if value.nil?
         options[:expires_in] ||= options[:expiry]
-        Rails.cache.write(namespace_keyname(keyname), value, options)
+        Rails.cache.write(namespace_keyname(keyname), store_value, options)
         value
       end
       
@@ -33,7 +41,8 @@ class Easycache
       # under this keyname.
       def read(keyname)
         keyname = keyname.to_s
-        Rails.cache.read(namespace_keyname(keyname))
+        val = Rails.cache.read(namespace_keyname(keyname))
+        (val == 'EASYCACHE::nil') ? nil : val
       end
       
       # This convenience method allows you to cache the return value of any block
@@ -62,8 +71,11 @@ class Easycache
       #   end
       def cache(keyname, options = {}, &block)
         keyname = keyname.to_s
-        (exists?(keyname) && read(keyname)) ||
+        if exists?(keyname)
+          read(keyname)
+        else
           write(keyname, yield, options)
+        end
       end
       
       # Returns the value stored at the given keyname (if any) and deletes it from 
