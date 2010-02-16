@@ -7,14 +7,14 @@ useful when you want to store data from external sources like LDAP or Web
 Services, for which Rails does not currently offer an integrated caching 
 mechanism.
 
-Visit http://code.google.com/p/easycache/ for more information.
+Visit http://code.google.com/p/easycache for more information.
 
 === INSTALLATION
 
 From the command line, cd into your Rails application's root directory 
 and run:
 
-ruby script/plugin install http://easycache.googlecode.com/svn/trunk/
+  ruby script/plugin install git://github.com/zuk/rails-easycache.git
 
 === EXAMPLES
 
