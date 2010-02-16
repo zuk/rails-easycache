@@ -16,6 +16,10 @@ and run:
 
   ruby script/plugin install git://github.com/zuk/rails-easycache.git
 
+=== LICENSE
+
+"MIT License"[http://en.wikipedia.org/wiki/MIT_License]
+
 === EXAMPLES
 
 Once you've installed the plugin, you should be able to do something like this
