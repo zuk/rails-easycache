@@ -33,6 +33,8 @@ class Easycache
           'The value "EASYCACHE::nil" is reserved by Easycache and cannot be stored.' if value == 'EASYCACHE::nil'
         store_value = 'EASYCACHE::nil' if value.nil?
         options[:expires_in] ||= options[:expiry]
+        raise ArgumentError,
+          ":expires_in option must be an integer but is #{options[:expires_in].inspect}" unless options[:expires_in].kind_of?(Integer)
         Rails.cache.write(namespace_keyname(keyname), store_value, options)
         value
       end
